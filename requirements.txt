@@ -1,0 +1,10 @@
+flask
+pandas
+scikit-learn
+joblib
+textblob
+numpy
+requests
+sklearn
+scipy
+xgboost
