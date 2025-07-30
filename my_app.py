@@ -104,3 +104,4 @@ def home():
 if __name__ == '__main__':
     app.run(debug=True, port=8080)
 # This code is a simple Flask web application that serves as a frontend for a tweet generator.
+# This code is a simple Flask web application that serves as a frontend for a tweet generator.
