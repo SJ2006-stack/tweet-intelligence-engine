@@ -5,6 +5,6 @@ joblib
 textblob
 numpy
 requests
-sklearn
+scikit-learn
 scipy
 xgboost
