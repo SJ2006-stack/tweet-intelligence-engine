@@ -36,8 +36,219 @@ company_avg_likes_map = {
 PAGE_TEMPLATE = '''
 <!DOCTYPE html>
 <html lang="en">
-<!-- ... HTML/CSS TEMPLATE AS BEFORE ... -->
-'''  # CONTINUE your full HTML template code here (truncated for brevity)
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tweet Generator App - Dark Theme</title>
+  <style>
+    body, html {
+      margin: 0; padding: 0;
+      height: 100vh;
+      font-family: "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
+      background: #18171c;
+      /* Subtle grid pattern for depth, like modern dark UIs */
+      background-image:
+        linear-gradient(90deg, rgba(60,60,70,0.03) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(60,60,70,0.03) 1px, transparent 1px);
+      background-size: 40px 40px, 40px 40px;
+      color: #f4f4fa;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .container {
+      background: #232129;
+      border-radius: 16px;
+      border: 1px solid #35334b;
+      width: 100%;
+      max-width: 430px;
+      padding: 42px 36px 56px;
+      box-shadow: 0 8px 32px 4px rgba(20, 13, 47, 0.95), 0 1.5px 3px rgba(84,40,124,0.13);
+      text-align: center;
+      position: relative;
+    }
+    h1 {
+      font-size: 2.4em;
+      margin-bottom: 30px;
+      color: #d7a7f9;
+      font-family: "Segoe UI Semibold", "Roboto", sans-serif;
+      letter-spacing: 1px;
+      text-shadow: 0 2px 18px #6125b777;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    label {
+      display: flex;
+      flex-direction: column;
+      font-size: 14.5px;
+      font-weight: 500;
+      color: #ffeefd;
+      text-align: left;
+      margin-bottom: 2px;
+    }
+    input[type="text"],
+    input[type="number"],
+    select {
+      margin-top: 7px;
+      padding: 12px 14px;
+      font-size: 15px;
+      border-radius: 8px;
+      border: 1.2px solid #333048;
+      background: #222032;
+      color: #dacffc;
+      outline: none;
+      box-shadow: none;
+      transition: border-color 0.3s, background 0.2s;
+    }
+    input[type="text"]:focus,
+    input[type="number"]:focus,
+    select:focus {
+      border-color: #a06bf9;
+      background: #302943;
+      color: #fff;
+    }
+    .checkbox-label {
+      flex-direction: row;
+      align-items: center;
+      font-weight: 500;
+      gap: 11px;
+      color: #dacffc;
+      text-align: left;
+      margin-top: 2px;
+    }
+    input[type="checkbox"] {
+      width: 19px;
+      height: 19px;
+      accent-color: #e966fa;
+      background: #18171c;
+      border: 1.5px solid #a06bf9;
+      border-radius: 7px;
+      transition: accent-color 0.2s;
+    }
+    button {
+      margin-top: 22px;
+      background-color: #a06bf9;
+      border: none;
+      border-radius: 9px;
+      color: #fffafd;
+      font-weight: 700;
+      font-size: 17px;
+      letter-spacing: 0.5px;
+      padding: 13px 0 11px 0;
+      cursor: pointer;
+      box-shadow: 0 4px 16px #420a7950, inset 0 -2px 9px #1a0422bb;
+      transition: background 0.2s, box-shadow 0.2s;
+    }
+    button:hover, button:focus {
+      background-color: #7d53b5;
+      box-shadow: 0 8px 20px #a06bf967, 0 1px 8px #7022fa21;
+      outline: none;
+    }
+    .result, .warning, .error {
+      margin-top: 28px;
+      text-align: left;
+      font-size: 15px;
+      border-radius: 8px;
+      padding: 18px 18px 12px;
+      word-break: break-word;
+      color: #f4f4fa;
+    }
+    .result {
+      background: #23202d;
+      border: 1.5px solid #7b2ff2;
+      font-family: Consolas, monospace;
+      box-shadow: 0 0 12px #7b2ff265;
+      color: #fbefff;
+    }
+    .warning {
+      background: #322c35;
+      border: 1.5px solid #e9b800;
+      color: #fffad0;
+      box-shadow: 0 0 9px #e9b80055;
+    }
+    .error {
+      background: #2b171b;
+      border: 1.5px solid #fd214a;
+      color: #ffd3df;
+      box-shadow: 0 0 13px #fd214a55;
+    }
+    hr {
+      border: none;
+      border-top: 1.5px dashed #574074;
+      margin: 15px 0 10px 0;
+      opacity: 0.4;
+    }
+    ::selection {
+      background: #a06bf966;
+    }
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #a06bf9;
+      border-radius: 20px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #23202d;
+    }
+  </style>
+</head>
+<body>
+  <div class="container" role="main">
+    <h1>Tweet Generator</h1>
+    <form method="POST" novalidate>
+      <label for="company">Enter a company name:
+        <input id="company" name="company" type="text" required value="{{ company|default('') }}" autocomplete="off" />
+      </label>
+      <label for="tweet_type">Select tweet type:
+        <select id="tweet_type" name="tweet_type" required>
+          <option value="announcement" {% if tweet_type=='announcement' %}selected{% endif %}>Announcement</option>
+          <option value="question" {% if tweet_type=='question' %}selected{% endif %}>Question</option>
+          <option value="general" {% if tweet_type=='general' %}selected{% endif %}>General</option>
+          <option value="update" {% if tweet_type=='update' %}selected{% endif %}>Update</option>
+        </select>
+      </label>
+      <label for="message">Enter your message or topic:
+        <input id="message" name="message" type="text" required value="{{ message|default('') }}" autocomplete="off" />
+      </label>
+      <label class="checkbox-label" for="has_media">
+        <input id="has_media" type="checkbox" name="has_media" {% if has_media %}checked{% endif %} />
+        Has media
+      </label>
+      <label for="hour">Hour of posting (0-23):
+        <input id="hour" name="hour" type="number" min="0" max="23" value="{{ hour|default(12) }}" required />
+      </label>
+      <button type="submit">Predict & Generate</button>
+    </form>
+    {% if response %}
+      {% if response.success %}
+        <div class="result" role="region" aria-live="polite">
+          <p><strong>Tweet Generated Successfully</strong></p>
+          <p>"{{ response.generated_tweet }}"</p>
+          <hr />
+          <p><strong>Predicted Likes:</strong> {{ response.predicted_likes }}</p>
+        </div>
+      {% else %}
+        <div class="warning" role="alert">
+          <p><strong>Warning:</strong> Tweet generation was not successful.</p>
+          <p>Details: {{ response.error or 'Check console for more information.' }}</p>
+        </div>
+      {% endif %}
+    {% endif %}
+    {% if error %}
+      <p class="error" role="alert">Error: {{ error }}</p>
+    {% endif %}
+  </div>
+</body>
+</html>
+
+
+
+
+'''
 
 # Instantiate the tweet generator once
 tweet_generator = SimpleTweetGenerator()
