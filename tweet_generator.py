@@ -2,7 +2,7 @@ import random
 
 class SimpleTweetGenerator:
     def __init__(self):
-        # Expanded templates with more types and varied styles
+        #  Made more templates as it will serve more otions
         self.templates = {
             'announcement': [
                 "🚀 Exciting news from {company}! {message}",
@@ -47,16 +47,16 @@ class SimpleTweetGenerator:
         }
 
     def generate_tweet(self, company, tweet_type="general", message=None, topic=None):
-        # Validate company name
+        # checking if it's blank or not
         if not company or company.strip() == "":
             return "Error: Company name is required."
 
         tpltype = (tweet_type or "general").strip().lower()
-        # Use 'general' if tweet_type is not recognized
+        # setting 'general' as default
         if tpltype not in self.templates:
             tpltype = 'general'
 
-        # Assign message and topic defaults per tweet type if missing
+        # assigning the defaults in case of blanks
         if not message or message.strip() == "":
             if tpltype == 'announcement':
                 message = "making big moves"
@@ -98,7 +98,7 @@ class SimpleTweetGenerator:
         except Exception as e:
             return f"Error: failed to create tweet ({e})."
 
-        # Truncate if too long (max 280 tweets)
+        # Truncate if too long (max 280 tweets as per X regulation)
         if len(tweet) > 280:
             tweet = tweet[:277] + "..."
 
@@ -108,7 +108,7 @@ class SimpleTweetGenerator:
         """Returns the list of supported tweet types"""
         return list(self.templates.keys())
 
-# Example usage and testing
+#  Ranned the test cases, thought to display them here
 if __name__ == "__main__":
     generator = SimpleTweetGenerator()
 
