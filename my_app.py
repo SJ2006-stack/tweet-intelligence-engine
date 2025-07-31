@@ -4,25 +4,25 @@ import pandas as pd
 import numpy as np
 import re
 from textblob import TextBlob
+import os
 
 app = Flask(__name__)
 
-# Load your trained StackingRegressor model (make sure like_predictor.pkl is in same folder)
+# Load your trained StackingRegressor model
 model = joblib.load('like_predictor.pkl')
 
-# Since your model expects specific features, let's define helper functions to extract features from inputs:
+# --- Company encoding (replace/add known companies as necessary for your training data) ---
+company_to_code = {
+    'example_company': 1,
+    'company_a': 2,
+    'company_b': 3,
+    # Add more companies as needed
+}
+def encode_company(company_name):
+    company_name = company_name.lower().strip()
+    return company_to_code.get(company_name, 0)
 
-encoder_company = None  # To be loaded from your training scenario or saved encoder if possible
 encoder_sentiment = ['Positive', 'Neutral', 'Negative']
-
-# --- We need label encoder for company ---
-# Since you use LabelEncoder and fit on training data, you should save & load it.
-# For demonstration, let's assume you saved the LabelEncoder like joblib.dump(encoder, 'company_encoder.pkl')
-# Replace with actual file path if you saved it.
-try:
-    encoder = joblib.load('company_encoder.pkl')
-except:
-    encoder = None
 
 def get_sentiment(polarity):
     if polarity > 0:
@@ -46,17 +46,19 @@ def has_hashtag(text):
     return 1 if re.search(r'#\w+', str(text)) else 0
 
 def has_url(text):
-    url_regex = r'(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:\'".,<>?«»“”‘’]))'
+    url_regex = r'(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)' \
+                r'(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+' \
+                r'(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:\'".,<>?«»“”‘’]))'
     return 1 if re.search(url_regex, str(text)) else 0
 
-# Placeholder for company average likes statistics - these must match training data scale!
-# You must save and load this mapping from training; below is dummy data for demonstration
+# Placeholder for company average likes statistics (match these to your training scale/mapping)
 company_avg_likes_map = {
-    # 'company_name': average likes float,
     'example_company': 123.45,
+    'company_a': 67.89,
+    'company_b': 45.67,
+    # Add more mappings here if needed
 }
 
-# Your HTML template remains unchanged
 PAGE_TEMPLATE = '''
 <!DOCTYPE html>
 <html>
@@ -121,50 +123,30 @@ PAGE_TEMPLATE = '''
 @app.route('/generate', methods=['POST'])
 def generate():
     data = request.get_json()
-    
-    # Extract parameters
+
     company = data.get('company', '').strip().lower()
     tweet_type = data.get('tweet_type', '').strip().lower()
     message = data.get('message', '').strip().lower()
-    
-    # For demo, generate a simple tweet text (replace with your own generation logic if any)
+
     generated_tweet = f"{tweet_type.capitalize()} about {company}: {message}"
-    
-    # Prepare feature vector similar to training
-    
+
     try:
-        # Company encoding - if encoder exists else default 0
-        if encoder:
-            company_encoded = encoder.transform([company])[0] if company in encoder.classes_ else 0
-        else:
-            company_encoded = 0
-        
-        # content processing -> content = message (simulate as content)
+        company_encoded = encode_company(company)
         content = message
-        
-        # Compute features:
         word_count = len(content.split())
         char_count = len(content)
-        has_media = 0  # no info from frontend; safely default to 0
-        # For hour and day_of_week - since not passed, use default or dummy values
-        hour = 12  # mid-day default
+        has_media = 0
+        hour = 12
         sentiment_polarity = TextBlob(content).sentiment.polarity
         sentiment_value = get_sentiment(sentiment_polarity)
         emoji_count = count_emojis(content)
         has_hashtag_val = has_hashtag(content)
         has_url_val = has_url(content)
-        
-        # tfidf_mean - no vectorizer loaded here, approximate with average length ratio (or zero)
         tfidf_mean = 0.0
-        
-        # company_avg_likes from dummy map or 0
         company_avg_likes = company_avg_likes_map.get(company, 0.0)
-        
-        # Sentiment one-hot encoding consistent with your training (drop first: Positive is baseline, so encode Neutral and Negative)
         sentiment_neutral = 1 if sentiment_value == 'Neutral' else 0
         sentiment_negative = 1 if sentiment_value == 'Negative' else 0
-        
-        # Build feature vector as DataFrame with same column order as training
+
         features = pd.DataFrame([{
             'word_count': word_count,
             'char_count': char_count,
@@ -179,10 +161,9 @@ def generate():
             'sentiment_Neutral': sentiment_neutral,
             'sentiment_Negative': sentiment_negative
         }])
-        
-        # Make prediction
+
         predicted_likes = model.predict(features)[0]
-        
+
         return jsonify({
             'success': True,
             'generated_tweet': generated_tweet,
@@ -198,34 +179,27 @@ def generate():
 def home():
     response = error = None
     company = tweet_type = message = ''
-    
+
     if request.method == 'POST':
         company = request.form.get('company', '')
         tweet_type = request.form.get('tweet_type', 'announcement')
         message = request.form.get('message', '')
-        
-        # Instead of making external request, call generate logic internally
         try:
-            # Build JSON-like dict for features
             request_data = {
                 'company': company,
                 'tweet_type': tweet_type,
                 'message': message
             }
-            # Simulate a request context to call generate directly:
-            # Here just call the function directly:
             with app.test_request_context(json=request_data):
                 resp = generate()
-                # resp is Response object with JSON data
                 json_data = resp.get_json()
-                
                 if json_data.get('success'):
                     response = json_data
                 else:
                     error = json_data.get('error', 'Unknown error in prediction')
         except Exception as ex:
             error = str(ex)
-    
+
     return render_template_string(
         PAGE_TEMPLATE,
         response=response,
@@ -236,6 +210,6 @@ def home():
     )
 
 if __name__ == '__main__':
-    import os
     port = int(os.environ.get('PORT', 8080))
     app.run(host='0.0.0.0', port=port, debug=True)
+
